@@ -1,0 +1,58 @@
+doctype html
+html
+    head
+        meta(chartset='utf-8')
+        title= _title
+    body
+    h1 WELCOME DDODGE.GG
+        form(action='/' method='post')
+            //- p
+            //-     input(type='text' name='name' placeholder="Typing Summoner Name")
+            //-     input(type="submit" name='button' value='SUMMONER')
+            //- p
+            //-     input(type='text' name='name' placeholder="Typing Summoner Name")
+            //-     input(type="submit" name='button' value='MATCH LIST')
+            //- p
+            //-     input(type='text' name='name' placeholder="Typing Summoner Name")
+            //-     input(type='text' name='champion' placeholder="Typing Champion INDEX")
+            //-     input(type='text' name='position' placeholder="Typing Position")
+            //-     input(type="submit" name='button' value='RD')
+            p
+                select(name='tiersDropDown' value='tiers')
+                    each tier, key in _tiers
+                        option(value=tier) #{tier}
+                    else
+                        pre(style= "font-size: 12px") 'tierlist is empthy'
+                input(type="submit" name='button' value='REPLACE SUMMONERS')
+            p
+                select(name='tiersDropDown2' value='tiers2')
+                    each tier, key in _tiers
+                        option(value=tier) #{tier}
+                    else
+                        pre(style= "font-size: 12px") 'tierlist is empthy'
+                input(type="submit" name='button' value='REMOVE SUMMONERS')
+                input(type="submit" name='button' value='REMOVE SUMMONERS ALL')
+            p
+                input(type='text' name='prevDate' placeholder="Typing prev date")
+                input(type='text' name='nextDate' placeholder="Typing next data")
+                input(type="submit" name='button' value='REPLACE MATCHES')
+            p
+                input(type="submit" name='button' value='INSERT INFORMATION')
+            //- p
+            //-     select(name='championsdropdown' value='CHAMPIONIMAGEDROPDOWN')
+            //-         each champion, key in _champions
+            //-             option(value=champion.en) #{champion.kr}
+            //-         else
+            //-             pre(style= "font-size: 12px") '챔피언 리스트가 비었습니다.'
+            //-     input(type='text' name='r' placeholder="red(0~255)")
+            //-     input(type='text' name='g' placeholder="green(0~255)")
+            //-     input(type='text' name='b' placeholder="blue(0~255)")
+            //-     input(type='text' name='radius' placeholder="raduis")
+            //-     input(type='text' name='thickness' placeholder="thickness")
+            //-     input(type="submit" name='button' value='CHAMPIONIMAGE')
+            //-     input(type="submit" name='button' value='CHAMPIONCIRCLEIMAGE')
+            p
+                input(type="submit" name='button' value='TEST')
+        pre(style= "font-size: 12px")= _body
+        //- img= _body
+        pre(style= "font-size: 12px")= _time
