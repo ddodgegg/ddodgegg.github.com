@@ -129,6 +129,13 @@ async function GetMatches(name){
 
     return result;
 }
+async function GetMatchIds(name){
+    let sql = 'SELECT id FROM ' + name;
+
+    let result = await Request(sql);
+
+    return result;
+}
 
 async function InsertMatch(match, tableName) {
     let bans = helper.MakeBans(match);
@@ -189,6 +196,7 @@ module.exports = function(tableName, databaseConfig){
         RemoveSummoners: RemoveSummoners, 
         RemoveSummonersWithTier: RemoveSummonersWithTier, 
         GetMatches: GetMatches, 
+        GetMatchIds: GetMatchIds, 
         InsertMatch: InsertMatch
     }
 }

@@ -231,7 +231,7 @@ function GetBans(matches){
     console.log(matches);
 
     matches.forEach(function(match){
-        match.bans.forEach(function(banChamp){
+        Array.from(new Set(match.bans)).forEach(function(banChamp){
             if(banChamp in result){
                 result[banChamp] += 1;
             }

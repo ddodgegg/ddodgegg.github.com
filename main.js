@@ -43,7 +43,7 @@ app.listen(port, function(){
     console.log('Net Connect Success: ', port);
 });
 
-// remote
+// riot.txt
 app.get('/:fileName', function(req, res){
     let name = req.params.fileName;
 
@@ -196,7 +196,7 @@ async function ReplaceMatches(prevDate, nextDate){
 
     
     let tableName = 'match' + prevDate + '_' + nextDate;
-    let dbmatches = await sql.GetMatches(tableName);
+    let dbmatches = await sql.GetMatchIds(tableName);
     try{
         let tempTable = sql.CreateMatchesTable(tableName);
     }
