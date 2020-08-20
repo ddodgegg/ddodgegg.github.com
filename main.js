@@ -1,385 +1,14 @@
-// async function ReplaceMatches(prevDate, nextDate){
-//     console.log('----- start replace matches ------');
-//     // get summoners
-//     console.log('----- get all summoners from DB -----');
-//     let encryptIDs;
-//     try{
-//         encryptIDs = await GetAllEncryptIDFromDB();
-//     }
-//     catch(err){
-//         throw err;
-//     }
-//     // let encryptIDs = [
-//     //     {accountId: 'BKczf496eQkpz2SNPrhfsc63CBRkZTKjpcpoTp-Liz73'}, 
-//     //     {accountId: 'giVwy-3tasMuCghPFe5LiSlelffYfUB7DfU1iqqd41wkdVU'}
-//     // ];
-
-//     console.log('----- complete get all summoners -----', encryptIDs.length);
-
-//     // get all matches
-//     console.log('----- start get all matchIDs -----');
-//     let matches = new Array();
-//     for(let i = 0; i < encryptIDs.length;){
-//         console.log('-----', encryptIDs[i].accountId, '-----', i, '/', encryptIDs.length);
-//         try{
-//             let tempMatches = await GetMatchList(encryptIDs[i].accountId, prevDate, nextDate);
-
-//             for(let j = 0; j < tempMatches.matches.length; ++j){
-//                 if(matches.indexOf(tempMatches.matches[j].gameId == -1)){
-//                     matches.push(tempMatches.matches[j].gameId);
-//                 }
-//                 else{
-//                     console.log('중복입니다.', tempMatches.matches[j].gameId);
-//                 }
-//             }
-
-//             ++i;
-
-//             console.log('current Matches: ', tempMatches.matches.length);
-//         }
-//         catch(err){
-//             console.log('매치 리스트 요청 도중 에러가 발생했습니다.\n', err);            
-//             if(err != undefined && errorcodes.indexOf(err.status.status_code) == -1){
-//                 ++i;
-//             }
-//         }
-//     }
-
-//     console.log(matches);
-//     console.log('----- complete get matcheIDs -----', matches.length);
-
-//     // select user and champion count
-//     let bans = {};
-//     let summoners = {};
-//     let matchCount = 0;
-//     for(let i = 0; i < matches.length;){
-//         console.log('match: ', matches[i], i, '/', matches.length);
-//         if(matches[i] == undefined){
-//             continue;
-//         }
-//         try{
-//             let tempMatch = await GetMatch(matches[i]);
-
-//             // get bans
-//             tempMatch.teams[0].bans.forEach(element => {
-//                 if(element.championId in bans){
-//                     bans[element.championId] += 1;
-//                 }
-//                 else{
-//                     bans[element.championId] = 1;
-//                 }
-//             });
-//             tempMatch.teams[1].bans.forEach(element => {
-//                 if(element.championId in bans){
-//                     bans[element.championId] += 1;
-//                 }
-//                 else{
-//                     bans[element.championId] = 1;
-//                 }
-//             });
-
-//             // console.log(bans);
-
-//             let wonTeam = {};
-//             let lossTeam = {};
-
-//             if(tempMatch.teams[0].win == 'Win'){
-//                 wonTeam = GetTeam(tempMatch, 0);
-//                 lossTeam = GetTeam(tempMatch, 5);
-//             }
-//             else{
-//                 lossTeam = GetTeam(tempMatch, 0);
-//                 wonTeam = GetTeam(tempMatch, 5);
-//             }
-            
-//             console.log('----- win -----');
-//             console.log(wonTeam);
-//             console.log('----- loss -----');
-//             console.log(lossTeam);
-
-//             let position = ['TOP', 'JUNGLE', 'MIDDLE', 'DUO_CARRY', 'DUO_SUPPORT'];
-
-//             for(let j = 0; j < 5; ++j){
-//                 console.log('-----', position[j], '검출 시작-----')
-//                 console.log(wonTeam[position[j]]);
-//                 console.log(lossTeam[position[j]]);
-
-//                 if(position[j] in wonTeam == false){
-//                     console.log('승리팀에는', position[j], '포지션이 검색되지 않습니다.');
-//                     continue;
-//                 }
-//                 if(position[j] in lossTeam == false){
-//                     console.log('패배팀에는', position[j], '포지션이 검색되지 않습니다.');
-//                     continue;
-//                 }
-
-//                 if(wonTeam[position[j]].name in summoners){
-//                     if(position[j] in summoners[wonTeam[position[j]].name]){
-//                         if(wonTeam[position[j]].championId in summoners[wonTeam[position[j]].name][position[j]]){
-//                             if(lossTeam[position[j]].championId in summoners[wonTeam[position[j]].name][position[j]][wonTeam[position[j]].championId]){
-//                                 summoners[wonTeam[position[j]].name][position[j]][wonTeam[position[j]].championId][lossTeam[position[j]].championId]['win'] += 1;
-//                                 summoners[wonTeam[position[j]].name][position[j]][wonTeam[position[j]].championId][lossTeam[position[j]].championId]['total'] += 1;
-//                             }
-//                             else{
-//                                 summoners[wonTeam[position[j]].name][position[j]][wonTeam[position[j]].championId][lossTeam[position[j]].championId] = {win: 1, total: 1};
-//                             }
-//                         }
-//                         else{
-//                             let tempObj = {win: 1, total: 1};
-//                             let tempObj2 = {};
-//                             tempObj2[lossTeam[position[j]].championId] = tempObj;
-//                             summoners[wonTeam[position[j]].name][position[j]][wonTeam[position[j]].championId] = tempObj2;
-//                         }
-//                     }
-//                     else{
-//                         let tempObj = {win: 1, total: 1};
-//                         let tempObj2 = {};
-//                         tempObj2[lossTeam[position[j]].championId] = tempObj;
-//                         let tempObj3 = {};
-//                         tempObj3[wonTeam[position[j]].championId] = tempObj2;
-//                         summoners[wonTeam[position[j]].name][position[j]] = tempObj3;
-//                     }
-//                 }
-//                 else{
-//                     let tempObj = {win: 1, total: 1};
-//                     let tempObj2 = {};
-//                     tempObj2[lossTeam[position[j]].championId] = tempObj;
-//                     let tempObj3 = {};
-//                     tempObj3[wonTeam[position[j]].championId] = tempObj2;
-//                     let tempObj4 = {};
-//                     tempObj4[position[j]] = tempObj3;
-//                     summoners[wonTeam[position[j]].name] = tempObj4;
-//                 }
-
-//                 if(lossTeam[position[j]].name in summoners){
-//                     if(position[j] in summoners[lossTeam[position[j]].name]){
-//                         if(lossTeam[position[j]].championId in summoners[lossTeam[position[j]].name][position[j]]){
-//                             if(wonTeam[position[j]].championId in summoners[lossTeam[position[j]].name][position[j]][lossTeam[position[j]].championId]){
-//                                 summoners[lossTeam[position[j]].name][position[j]][lossTeam[position[j]].championId][wonTeam[position[j]].championId]['total'] += 1;
-//                             }
-//                             else{
-//                                 summoners[lossTeam[position[j]].name][position[j]][lossTeam[position[j]].championId][wonTeam[position[j]].championId] = {win: 0, total: 1};
-//                             }
-//                         }
-//                         else{
-//                             let tempObj = {win: 0, total: 1};
-//                             let tempObj2 = {};
-//                             tempObj2[wonTeam[position[j]].championId] = tempObj;
-//                             summoners[lossTeam[position[j]].name][position[j]][lossTeam[position[j]].championId] = tempObj2;
-//                         }
-//                     }
-//                     else{
-//                         let tempObj = {win: 0, total: 1};
-//                         let tempObj2 = {};
-//                         tempObj2[wonTeam[position[j]].championId] = tempObj;
-//                         let tempObj3 = {};
-//                         tempObj3[lossTeam[position[j]].championId] = tempObj2;
-//                         summoners[lossTeam[position[j]].name][position[j]] = tempObj3;
-//                     }
-//                 }
-//                 else{
-//                     let tempObj = {win: 0, total: 1};
-//                     let tempObj2 = {};
-//                     tempObj2[wonTeam[position[j]].championId] = tempObj;
-//                     let tempObj3 = {};
-//                     tempObj3[lossTeam[position[j]].championId] = tempObj2;
-//                     let tempObj4 = {};
-//                     tempObj4[position[j]] = tempObj3;
-//                     summoners[lossTeam[position[j]].name] = tempObj4;
-//                 }
-
-//                 console.log('-----', position[j],'검출 완료 -----');
-//                 // console.log(JSON.stringify(summoners));
-//             }
-
-//             ++i;
-//             ++matchCount;
-//         }
-//         catch(err){
-//             console.log('매치 정보 요청 도중 에러가 발생했습니다.\n', err);
-//             if(err != undefined && errorcodes.indexOf(err.status.status_code) == -1){
-//                 ++i;
-//             }
-//         }
-//     }
-
-//     // console.log(JSON.stringify(summoners, null, '\t'));
-//     console.log('----- complete analisis matches -----');
-
-//     console.log('----- start load excel -----');
-//     let xlsx = excel.readFile('./10.13_.xlsm');
-
-//     let championBanMatchSheet = xlsx.Sheets["밴 횟수  매치업 승수 픽수"];
-//     console.log(excel.utils.decode_range(championBanMatchSheet['!ref']));
-//     let sheetRowCount = excel.utils.decode_range(championBanMatchSheet['!ref']).e.r;
-//     for(let key in bans){
-//         console.log(key, '챔피언의 벤 횟수를 삽입합니다. count: ', bans[key]);
-//         if(key == -1){
-//             console.log(key, '값은 벤 없음입니다. 건너뜁니다.');
-//             continue;
-//         }
-
-//         for(let i = 0; i < sheetRowCount; ++i){
-//             if(championBanMatchSheet['A' + (i + 2)] == undefined){
-//                 throw '모든 챔피언을 검사했으나 해당 챔피언은 벤 리스트에 없습니다.';
-//             }
-
-//             if(key == championBanMatchSheet['A' + (i + 2)].v){
-//                 championBanMatchSheet['B' + (i + 2)] = {v: bans[key], t: 'n'};
-//                 break;
-//             }
-//         }
-//     }
-
-//     let sheetColumnCount = excel.utils.decode_range(championBanMatchSheet['!ref']).e.c;
-//     let championSheetPosition = [];
-//     let won_ChampionSheetPosition = [];
-//     for(let i = 0; i < normal_ChampionSheet_Keyword.length; ++i){
-//         for(let j = 0; j < sheetColumnCount; ++j){
-//             let column = excel.utils.encode_col(j) + '1';
-//             if(championBanMatchSheet[column] != undefined && championBanMatchSheet[column].v == normal_ChampionSheet_Keyword[i]){
-//                 championSheetPosition.push(j);
-//             }
-
-//             if(championBanMatchSheet[column] != undefined && championBanMatchSheet[column].v == won_ChampionSheet_Keyword[i]){
-//                 won_ChampionSheetPosition.push(j);
-//                 break;
-//             }
-//         }
-
-//         if(championSheetPosition[i] == undefined || won_ChampionSheetPosition[i] == undefined){
-//             throw '챔피언 벤/픽순 시트 분석도중 포지션 행열을 가져올 수 없습니다.';
-//         }
-//         console.log(normal_ChampionSheet_Keyword[i], '의 열 번호는', championSheetPosition[i], excel.utils.encode_col(championSheetPosition[i]), '입니다.');
-//         console.log(won_ChampionSheet_Keyword[i], '의 열 번호는', won_ChampionSheetPosition[i], excel.utils.encode_col(won_ChampionSheetPosition[i]), '입니다.');
-//     }
-
-//     let lol_position = ['TOP', 'JUNGLE', 'MIDDLE', 'DUO_CARRY', 'DUO_SUPPORT'];
-
-//     // insert excel __ each champion total/win
-//     let sheet_ChampionList = xlsx.Sheets["DR 10.13"];
-//     let championlistCount = excel.utils.decode_range(sheet_ChampionList['!ref']).e.r;
-//     let championList = new Array();
-//     for(let i = 0; i < championlistCount; ++i){
-//         championList.push(sheet_ChampionList['A' + (i + 1)].v);
-//     }
-
-//     // row
-//     for(let i = 0; i < championList.length; ++i){
-//         // column
-//         for(let k = 0; k < championList.length; ++k){
-//             // position
-//             for(let j = 0; j < lol_position.length; ++j){
-//                 let totalCount = 0;
-//                 let winCount = 0;
-//                 //find all users
-//                 for(let key in summoners){
-//                     if(lol_position[j] in summoners[key]){
-//                         if(championList[i] in summoners[key][lol_position[j]]){
-//                             if(championList[k] in summoners[key][lol_position[j]][championList[i]]){
-//                                 totalCount += summoners[key][lol_position[j]][championList[i]][championList[k]].total;
-//                                 winCount += summoners[key][lol_position[j]][championList[i]][championList[k]].win;
-//                             }
-//                         }
-//                     }
-//                 }
-
-//                 if(totalCount != 0){
-//                     console.log(lol_position[j], '---', championList[i], 'vs', championList[k], 'win/total: ', winCount, totalCount);
-//                     console.log((excel.utils.encode_col(championSheetPosition[j] + (k + 1))) + (i + 2));
-//                     console.log((excel.utils.encode_col(won_ChampionSheetPosition[j] + (k + 1))) + (i + 2));
-
-//                     championBanMatchSheet[(excel.utils.encode_col(championSheetPosition[j] + (k + 1))) + (i + 2)] = {v: totalCount, t: 'n'};
-//                     championBanMatchSheet[(excel.utils.encode_col(won_ChampionSheetPosition[j] + (k + 1))) + (i + 2)] = {v: winCount, t: 'n'};
-//                 }
-//             }
-//         }
-//     }    
-
-//     let body = xlsx.Sheets["플레이어 별 픽수 승수"];
-//     let columnCount = excel.utils.decode_range(body['!ref']).e.c;
-//     let position = [];
-//     let won_position = [];
-
-//     body['A1'] = {t: 'n', v: matchCount};
-    
-//     for(let i = 0; i < normal_Keyword.length; ++i){
-//         for(let j = 0; j < columnCount; ++j){
-//             let column = excel.utils.encode_col(j) + '1';
-//             if(body[column] != undefined && body[column].v == normal_Keyword[i]){
-//                 position.push(j);
-//             }
-
-//             if(body[column] != undefined && body[column].v == won_Keyword[i]){
-//                 won_position.push(j);
-//                 break;
-//             }
-//         }
-
-//         if(position[i] == undefined || won_position[i] ==undefined){
-//             throw '플레이어 별 픽수 승수 시트 분석중 포지션 행열을 가져올 수 없습니다.';
-//         }
-//         console.log(normal_Keyword[i], '의 열 번호는', position[i], excel.utils.encode_col(position[i]), '입니다.');
-//         console.log(won_Keyword[i], '의 열 번호는', won_position[i], excel.utils.encode_col(won_position[i]), '입니다.');
-//     }
-
-//     let championCount = position[1] - position[0];
-//     console.log('모든 챔피언 개수는', championCount, '입니다.');
-
-//     let i = 5;
-//     for(let k = 0; k < lol_position.length; ++k){
-//         for(let key in summoners){
-//             body['A' + i] = {v: key};
-            
-//             if(summoners[key][lol_position[k]] == undefined){
-//                 console.log(key, '유저는', lol_position[k], '의 정보가 없습니다.');
-//                 continue;
-//             }
-
-//             console.log(lol_position[k], '열 찾기를 시작합니다.');
-
-//             for(let key2 in summoners[key][lol_position[k]]){
-//                 for(let j = 0; j < championCount; ++j){
-//                     let totalColumn = excel.utils.encode_col(position[k] + j);
-//                     let wonColumn = excel.utils.encode_col(won_position[k] + j);
-
-//                     if(body[totalColumn + 2].v == key2){
-//                         let totalCount = 0;
-//                         let wonCount = 0;
-//                         for(let iter in summoners[key][lol_position[k]][key2]){
-//                             totalCount += summoners[key][lol_position[k]][key2][iter].total;
-//                             wonCount += summoners[key][lol_position[k]][key2][iter].win;
-//                         }
-//                         body[totalColumn + i] = {v: totalCount, t: 'n'};
-//                         body[wonColumn + i] = {v: wonCount, t: 'n'};
-
-//                         break;
-//                     }
-//                 }
-//             }
-
-//             ++i;
-//         }
-//     }
-
-//     let range = excel.utils.decode_range(body['!ref']);
-//     range.e.r = i;
-//     body['!ref'] = excel.utils.encode_range(range);
-//     console.log(body['!ref']);
-
-//     excel.writeFile(xlsx, 'result.xlsm');
-// }
-
 const port = 3000;
-const key = 'RGAPI-59b35fb9-df4a-4081-9769-00c3b45471de';
+const key = 'RGAPI-79828dde-1e95-4265-933a-9bcdd39bb2d3';
 const password = 'dudgh1106';
-const time = 1.3;
+const delay = 1.3;
 const table = 'summoners';
+const excelName = '10.15 통계처리기.xlsx';
 
 const tiers = [
     'CHALLENGER I', 'GRANDMASTER I', 'MASTER I',
     'DIAMOND I', 'DIAMOND II', 'DIAMOND III', 'DIAMOND IV',
-    'PLATINUM I', 'PLATINUM II',, 'PLATINUM III', 'PLATINUM IV',
+    'PLATINUM I', 'PLATINUM II', 'PLATINUM III', 'PLATINUM IV',
     'GOLD I', 'GOLD II', 'GOLD III', 'GOLDI IV',
     'SILVER I', 'SILVER II', 'SILVER III', 'SILVER IV',
     'BRONZE I', 'BRONZE II', 'BRONZE III', 'BRONZE IV',
@@ -393,20 +22,14 @@ const errorcodes = [
     undefined
 ];
 
-const api = require('./source/APIHelper.js')(key, time);
-const sql = require('./source/SQLHelper.js')(table);
-sql.AutoConnect({
-    host: 'localhost', 
-    user: 'root', 
-    password: password, 
-    database: 'ddodgegg'
-});
+const api = require('./source/APIHelper.js')(key, delay);
+const sql = require('./source/SQLHelper.js')(table, {host: 'localhost', user: 'root', password: password, database: 'ddodgegg'});
 const helper = require('./source/ObjectHelper.js');
 const excel = require('./source/ExcelHelper.js');
 
+const fs = require('fs');
 const express = require('express');
 const bodyParser = require('body-parser');
-const { text } = require('express');
 
 const app = express();
 app.locals.pretty = true;
@@ -415,8 +38,21 @@ app.set('views', './pug');
 app.use(express.static('public'));
 app.use(bodyParser.urlencoded({extended: false}));
 
+// open server
 app.listen(port, function(){
     console.log('Net Connect Success: ', port);
+});
+
+// remote
+app.get('/:fileName', function(req, res){
+    let name = req.params.fileName;
+
+    if(name != '' && fs.existsSync('./' + name)){
+        const riot = fs.readFileSync('./' + name, 'utf8');
+
+        res.send(riot);
+        res.end();
+    }
 });
 
 app.get('/', function(req, res){
@@ -435,7 +71,7 @@ app.post('/', async function(req, res){
         isRunning = true;
         switch(botton){
             case 'TEST':
-                Test2(req.body.prevDate, req.body.nextDate)
+                Test(req.body.prevDate, req.body.nextDate)
                 .then(message => {
                     console.log('test complete', message);
                     isRunning = false;
@@ -517,14 +153,14 @@ async function ReplaceSummoners(fullTier){
             for(let i = 0; i < summoners.length;){
                 try{
                     let summoner = await api.Summoner(summoners[i].summonerName);
-                    let success = await sql.Summoner(summoner, summoners[i].tier + ' ' + summoners[i].rank);
+                    let success = await sql.InsertSummoner(summoner, summoners[i].tier + ' ' + summoners[i].rank);
                     console.log(summoner.name, '유저의 DB 입력은', success, '하였습니다.', i + 1, '/', summoners.length);
 
                     ++i;
                 }
                 catch(err){
                     if(errorcodes.indexOf(err) == -1){
-                        console.log(summoners[i].summonerName, '네트워크 오류', err);
+                        console.log(summoners[i].summonerName, '소환사의 정보 받아오기를 실패하였습니다. 다음 소환사로 넘어갑니다.\n', err);
                         ++i;
                     }
                 }
@@ -534,7 +170,7 @@ async function ReplaceSummoners(fullTier){
         }
         catch(err){
             if(errorcodes.indexOf(err) == -1){
-                console.log(tier, division, page, '오류');
+                console.log(tier, division, page, '에서 유저 리스트 받아오기를 실패하엿습니다. 다음 리스트로 넘어갑니다.\n', err);
                 ++page;
             }
         }
@@ -550,34 +186,37 @@ async function RemoveSummoners(fullTier){
 }
 
 async function RemoveALLSummoners(){
-    let result = await sql.RemoveAllSummoners();
+    let result = await sql.RemoveSummoners();
 
     return true;
 }
 
 async function ReplaceMatches(prevDate, nextDate){
+    console.log('시작날짜:', new Date(Number(prevDate)).toLocaleString(), '--- 종료날짜:', new Date(Number(nextDate)).toLocaleString());
+
+    
     let tableName = 'match' + prevDate + '_' + nextDate;
+    let dbmatches = await sql.GetMatches(tableName);
     try{
-        let tempTable = sql.CreateTable(tableName);
+        let tempTable = sql.CreateMatchesTable(tableName);
     }
     catch(err){
-        console.log('테이블 생성에 실패', err);
+        console.log(tableName, '테이블 생성에 실패하였습니다.\n', err);
     }
 
-    console.log('시작날짜:', new Date(Number(prevDate)).toLocaleString(), '--- 종료날짜:', new Date(Number(nextDate)).toLocaleString());
-    let result = await sql.GetAllSummoner();
+    let result = await sql.GetSummoners();
     console.log(result.length, '명의 매치분석을 시작합니다.');
 
     for(let i = 0; i < result.length;){
         let currentMatches = [];
         try{
-            console.log(result[i].name, '검사 시작');
+            console.log(result[i].name, '소환사의 전적기록 검사를 시작합니다.', i + 1, '/', result.length);
             let matches = await api.GetMatchList(result[i].accountId, prevDate, nextDate);
-            console.log(result[i].name, '의 매치 리스트 개수는', matches.matches.length, '개입니다.');
+            console.log(result[i].name, '소환사의 전적기록 개수는', matches.matches.length, '개입니다.');
 
             for(let j = 0; j < matches.matches.length;){
                 try{
-                    if(currentMatches.indexOf(matches.matches[j].gameId) != -1){
+                    if(currentMatches.indexOf(matches.matches[j].gameId) != -1 || dbmatches.indexOf(matches.matches[j].gameId) == -1){
                         console.log(matches.matches[j].gameId, '는 이미 검사한 매치입니다.');
                     }
                     else{
@@ -586,18 +225,15 @@ async function ReplaceMatches(prevDate, nextDate){
                         let match = await api.GetMatch(matches.matches[j].gameId);
                         let result = await sql.InsertMatch(match, tableName);
                         
-                        console.log(matches.matches[j].gameId, 'complete');
+                        console.log(matches.matches[j].gameId, '매치의 검사를 완료하였습니다.');
                     }
 
                     ++j;
                 }
                 catch(err){
                     if(errorcodes.indexOf(err) == -1){
-                        console.log(result[i].name, result[i].accountId, '소환사의 매치 오류', err);
+                        console.log(result[i].name, result[i].accountId, '소환사의', matches.matches[j].gameId, '의 검사에 실패하였습니다. 다음 매치로 넘어갑니다\n', err);
                         ++j;
-                    }
-                    else{
-                        console.log(result[i].name, result[i].accountId, '소환사의 매치 재검사를 시작', err);
                     }
                 }
             }
@@ -606,11 +242,8 @@ async function ReplaceMatches(prevDate, nextDate){
         }
         catch(err){
             if(errorcodes.indexOf(err) == -1){
-                console.log(result[i].name, result[i].accountId, '소환사의 매치 리스트 오류', err);
+                console.log(result[i].name, result[i].accountId, '소환사의 전적기록 불러오기에 실패하였습니다. 다음 소환사로 넘어갑니다.\n', err);
                 ++i;
-            }
-            else{
-                console.log(result[i].name, result[i].accountId, '소환사의 매치리스트 재검사를 시작', err);
             }
         }
     }
@@ -619,14 +252,13 @@ async function ReplaceMatches(prevDate, nextDate){
 }
 
 async function Test(prevDate, nextDate){
-    console.log('----- Load Matches -----');
+    console.log('검색한 일자에 대한 매치 분석을 시작합니다.');
     let sqlMatches = await sql.GetMatches('match' + prevDate + '_' + nextDate);
-    console.log('match Count: ' + sqlMatches.length);
+    console.log(sqlMatches.length, '개의 매치가 검색되었습니다.');
     let matches = helper.MakeMatch(sqlMatches);
 
     /* Load Excel and Sheet */
-    console.log('----- Load Excel -----');
-    let xlsx = excel.Load('./10.15 통계처리기.xlsm');
+    let xlsx = excel.Load('./excel/' + excelName);
     
     /* Get Champions */
     let championSheet = excel.GetSheet(xlsx, 'Champions');
@@ -870,71 +502,71 @@ async function Test(prevDate, nextDate){
         exceptWinSheet['!ref'] = 'A1:' + excel.GetSheetColumnWord(culumn) + row;
     }
     SetSheetRange(playercount, currentColumn2);
-    excel.Save(xlsx, 'Result.xlsm');
+    excel.Save(xlsx, 'Result.xlsx');
     //#endregion
 
     return true;
 }
 
-async function Test2(prevDate, nextDate){
-    console.log('----- Load Matches -----');
-    let sqlMatches = await sql.GetMatches('match' + prevDate + '_' + nextDate);
-    console.log('match Count: ' + sqlMatches.length);
-    let matches = helper.MakeMatch(sqlMatches);
+// async function Test2(prevDate, nextDate){
+//     console.log('----- Load Matches -----');
+//     let sqlMatches = await sql.GetMatches('match' + prevDate + '_' + nextDate);
+//     console.log('match Count: ' + sqlMatches.length);
+//     let matches = helper.MakeMatch(sqlMatches);
 
-    let temp = excel.Load('test.xlsx');
-    let sheet = excel.GetSheet(temp, 'Sheet1');
+//     let temp = excel.Load('test.xlsx');
+//     let sheet = excel.GetSheet(temp, 'Sheet1');
 
-    let row = 1;
-    function InsertCell(tempsheet, row, column, value, type = 'n'){
-        tempsheet[excel.GetSheetColumnWord(column) + row] = {v: value, t: type};
-    }
-    matches.forEach(element => {
-        let column = 0;
-        console.log(element['gameId']);
-        InsertCell(sheet, row, column, element['gameId']);
-        element.bans.forEach(ban => {
-            ++column
-            InsertCell(sheet, row, column, ban);
-        });
-        element.winTeam.forEach(winPlayer => {
-            ++column;
-            if(winPlayer == undefined){
-                InsertCell(sheet, row, column, 'NONE', 's');    
-                ++column;
-                InsertCell(sheet, row, column, 0);
-            }
-            else{
-                InsertCell(sheet, row, column, winPlayer['name'], 's');
-                ++column;
-                InsertCell(sheet, row, column, winPlayer['championId']);
-            }
-        });
-        element.lossTeam.forEach(lossPlayer => {
-            ++column;
-            if(lossPlayer == undefined){
-                InsertCell(sheet, row, column, 'NONE', 's');    
-                ++column;
-                InsertCell(sheet, row, column, 0);
-            }
-            else{
-                InsertCell(sheet, row, column, lossPlayer['name'], 's');
-                ++column;
-                InsertCell(sheet, row, column, lossPlayer['championId']);
-            }
-        });
+//     let row = 1;
+//     function InsertCell(tempsheet, row, column, value, type = 'n'){
+//         tempsheet[excel.GetSheetColumnWord(column) + row] = {v: value, t: type};
+//     }
+//     matches.forEach(element => {
+//         let column = 0;
+//         console.log(element['gameId']);
+//         InsertCell(sheet, row, column, element['gameId']);
+//         element.bans.forEach(ban => {
+//             ++column
+//             InsertCell(sheet, row, column, ban);
+//         });
+//         element.winTeam.forEach(winPlayer => {
+//             ++column;
+//             if(winPlayer == undefined){
+//                 InsertCell(sheet, row, column, 'NONE', 's');    
+//                 ++column;
+//                 InsertCell(sheet, row, column, 0);
+//             }
+//             else{
+//                 InsertCell(sheet, row, column, winPlayer['name'], 's');
+//                 ++column;
+//                 InsertCell(sheet, row, column, winPlayer['championId']);
+//             }
+//         });
+//         element.lossTeam.forEach(lossPlayer => {
+//             ++column;
+//             if(lossPlayer == undefined){
+//                 InsertCell(sheet, row, column, 'NONE', 's');    
+//                 ++column;
+//                 InsertCell(sheet, row, column, 0);
+//             }
+//             else{
+//                 InsertCell(sheet, row, column, lossPlayer['name'], 's');
+//                 ++column;
+//                 InsertCell(sheet, row, column, lossPlayer['championId']);
+//             }
+//         });
 
-        ++row;
-    });
+//         ++row;
+//     });
 
-    let saveColumn = 31;
+//     let saveColumn = 31;
     
-    function SetSheetRange(row, culumn){
-        sheet['!ref'] = 'A1:' + excel.GetSheetColumnWord(culumn) + row;
-        sheet['!ref'] = 'A1:' + excel.GetSheetColumnWord(culumn) + row;
-        sheet['!ref'] = 'A1:' + excel.GetSheetColumnWord(culumn) + row;
-        sheet['!ref'] = 'A1:' + excel.GetSheetColumnWord(culumn) + row;
-    }
-    SetSheetRange(matches.length, saveColumn);
-    excel.Save(temp, 'Test2.xlsm');
-}
+//     function SetSheetRange(row, culumn){
+//         sheet['!ref'] = 'A1:' + excel.GetSheetColumnWord(culumn) + row;
+//         sheet['!ref'] = 'A1:' + excel.GetSheetColumnWord(culumn) + row;
+//         sheet['!ref'] = 'A1:' + excel.GetSheetColumnWord(culumn) + row;
+//         sheet['!ref'] = 'A1:' + excel.GetSheetColumnWord(culumn) + row;
+//     }
+//     SetSheetRange(matches.length, saveColumn);
+//     excel.Save(temp, 'Test2.xlsx');
+// }

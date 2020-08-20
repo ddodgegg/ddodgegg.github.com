@@ -130,6 +130,7 @@ function MakeMatch(matches) {
 
     matches.forEach(element => {
         let gameId = Number(element.gameId);
+        console.log(element);
         let bans = element.bans.split('/').map(x=>+x);
 
         let MakeUser = function(player) {

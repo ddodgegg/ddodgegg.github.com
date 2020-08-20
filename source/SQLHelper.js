@@ -8,8 +8,8 @@ function SetTable(name){
     table = name;
 }
 
-function Connect(config){
-    connection = sql.createConnection(config);
+async function Connect(config){
+    connection = await sql.createConnection(config);
     connection.on('error', function (err) {
         if(!err.fatal){
             return;
@@ -22,10 +22,10 @@ function Connect(config){
         console.log('Re-connecting lost connection: ' + err.stack);
 
         Connect(config);
-        connection.connect();
     });
 
-    connection.connect();
+    await connection.connect();
+    await CreateSummonersTable(table);
 }
 
 function Request(sql, params){
@@ -42,9 +42,27 @@ function Request(sql, params){
     });
 }
 
-async function CreateTable(name){
-    let sql = 'CREATE TABLE ' + name +
-    ' (gameId VARCHAR(10), ' + 
+async function CreateSummonersTable(name){
+    let sql = 'CREATE TABLE IF NOT EXISTS ' + name +
+    '(id VARCHAR(63), ' + 
+    'accountId VARCHAR(56), ' + 
+    'puuid VARCHAR(78), ' + 
+    'name VARCHAR(20), ' + 
+    'profileIconId VARCHAR(25), ' + 
+    'revisionDate VARCHAR(25), ' + 
+    'summonerLevel VARCHAR(25), ' + 
+    'tier VARCHAR(25), ' + 
+    'PRIMARY KEY (id)' + 
+    ');'
+
+    let result = await Request(sql);
+
+    return result;
+}
+
+async function CreateMatchesTable(name){
+    let sql = 'CREATE TABLE IF NOT EXISTS ' + name +
+    '(gameId VARCHAR(10), ' + 
     'bans VARCHAR(40), ' + 
     'winPlayer1 VARCHAR(25), ' + 
     'winPlayer2 VARCHAR(25), ' + 
@@ -74,7 +92,7 @@ async function InsertSummoner(summoner, tier){
     return true;
 }
 
-async function GetAllSummoners(){
+async function GetSummoners(){
     let sql = 'SELECT * FROM ' + table;
     let sqlResult = await Request(sql);
     
@@ -89,6 +107,12 @@ async function GetSummonersWithTier(tier){
     return sqlResult;
 }
 
+async function RemoveSummoners(){
+    let sql = 'DELETE FROM ' + table;
+    
+    return await Request(sql);
+}
+
 async function RemoveSummonersWithTier(tier){
     let params = [tier];
     let sql = 'DELETE FROM ' + table + ' WHERE tier=?';
@@ -97,21 +121,6 @@ async function RemoveSummonersWithTier(tier){
 
     return true;
 }
-
-async function RemoveAllSummoners(){
-    let sql = 'DELETE FROM ' + table;
-    
-    return await Request(sql);
-}
-
-// async function CheckTable(name) {
-//     // let sql = 'SELECT * FROM ' + table + ' WHERE ' + name + '=$table_array';
-//     let sql = "SHOW TABLES LIKE '".$table."'"
-
-//     let result = Request(sql);
-
-//     return result;
-// }
 
 async function GetMatches(name){
     let sql = 'SELECT * FROM ' + name;
@@ -165,20 +174,20 @@ async function InsertMatch(match, tableName) {
     return result;
 }
 
-module.exports = function(tableName){
+module.exports = function(tableName, databaseConfig){
     table = tableName;
+    Connect(databaseConfig);
     
     return{
-        CreateTable: CreateTable, 
-        // CheckTable: CheckTable, 
+        CreateMatchesTable: CreateMatchesTable, 
         SetTable: SetTable, 
         AutoConnect: Connect, 
         Request: Request, 
-        Summoner: InsertSummoner, 
-        GetAllSummoner: GetAllSummoners, 
+        InsertSummoner: InsertSummoner, 
+        GetSummoners: GetSummoners, 
         GetSummonerWithTier: GetSummonersWithTier, 
+        RemoveSummoners: RemoveSummoners, 
         RemoveSummonersWithTier: RemoveSummonersWithTier, 
-        RemoveAllSummoners: RemoveAllSummoners, 
         GetMatches: GetMatches, 
         InsertMatch: InsertMatch
     }
