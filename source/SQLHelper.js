@@ -99,6 +99,13 @@ async function GetSummoners(){
     return sqlResult;
 }
 
+async function GetSummonerNames(){
+    let sql = 'SELECT name FROM ' + table;
+    let sqlResult = await Request(sql);
+    
+    return sqlResult;
+}
+
 async function GetSummonersWithTier(tier){
     let params = [tier]
     let sql = 'SELECT * FROM ' + table + ' WHERE tier=?';
@@ -109,8 +116,10 @@ async function GetSummonersWithTier(tier){
 
 async function RemoveSummoners(){
     let sql = 'DELETE FROM ' + table;
+
+    let result = await Request(sql);
     
-    return await Request(sql);
+    return true;
 }
 
 async function RemoveSummonersWithTier(tier){
@@ -130,7 +139,7 @@ async function GetMatches(name){
     return result;
 }
 async function GetMatchIds(name){
-    let sql = 'SELECT id FROM ' + name;
+    let sql = 'SELECT gameId FROM ' + name;
 
     let result = await Request(sql);
 
@@ -191,7 +200,8 @@ module.exports = function(tableName, databaseConfig){
         AutoConnect: Connect, 
         Request: Request, 
         InsertSummoner: InsertSummoner, 
-        GetSummoners: GetSummoners, 
+        GetSummoners: GetSummoners,
+        GetSummonerNames: GetSummonerNames,  
         GetSummonerWithTier: GetSummonersWithTier, 
         RemoveSummoners: RemoveSummoners, 
         RemoveSummonersWithTier: RemoveSummonersWithTier, 

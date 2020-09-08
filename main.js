@@ -1,10 +1,14 @@
+//#region UserSetting
 const port = 3000;
-const key = 'RGAPI-79828dde-1e95-4265-933a-9bcdd39bb2d3';
+const key = 'RGAPI-07cedf7a-76d3-4d34-adcc-8e2f7efbaeb5';
 const password = 'dudgh1106';
 const delay = 1.3;
 const table = 'summoners';
 const excelName = '10.15 통계처리기.xlsx';
+const distPath = './result/';
+//#endregion
 
+//#region Program Parameters
 const tiers = [
     'CHALLENGER I', 'GRANDMASTER I', 'MASTER I',
     'DIAMOND I', 'DIAMOND II', 'DIAMOND III', 'DIAMOND IV',
@@ -14,35 +18,33 @@ const tiers = [
     'BRONZE I', 'BRONZE II', 'BRONZE III', 'BRONZE IV',
     'IRON I', 'IRON II', 'IRON III', 'IRON IV',
 ];
-
 const errorcodes = [
     429,                // rate limit exceeded
     503,                // service unavailable
     504,                // gateway timeout
     undefined
 ];
-
 const api = require('./source/APIHelper.js')(key, delay);
 const sql = require('./source/SQLHelper.js')(table, {host: 'localhost', user: 'root', password: password, database: 'ddodgegg'});
 const helper = require('./source/ObjectHelper.js');
 const excel = require('./source/ExcelHelper.js');
-
 const fs = require('fs');
 const express = require('express');
 const bodyParser = require('body-parser');
-
+//#endregion
+//#region ProgramSetting
 const app = express();
 app.locals.pretty = true;
 app.set('view engine', 'pug');
 app.set('views', './pug');
 app.use(express.static('public'));
 app.use(bodyParser.urlencoded({extended: false}));
-
-// open server
 app.listen(port, function(){
     console.log('Net Connect Success: ', port);
 });
+//#endregion
 
+//#region Web Router
 // riot.txt
 app.get('/:fileName', function(req, res){
     let name = req.params.fileName;
@@ -92,8 +94,20 @@ app.post('/', async function(req, res){
                     isRunning = false;
                 });
             break;
+            case 'AUTO REPLACE SUMMONERS':
+                AutoReplaceSummoners(req.body.tiersDropDown)
+                .then(message => {
+                    console.log('----- Auto Replace Summoners Complete -----');
+                    console.log(message);
+                    isRunning = false;
+                })
+                .catch(err => {
+                    console.log('Auto Replace Summoners error...\n', err);
+                    isRunning = false;
+                })
+            break;
             case 'REMOVE SUMMONERS':
-                RemoveSummoners(req.body.tiersDropDown2)
+                RemoveSummonersWithTier(req.body.tiersDropDown2)
                 .then(message => {
                     console.log ('----- Remove Summoners complete -----');
                     isRunning = false;
@@ -138,6 +152,7 @@ app.post('/', async function(req, res){
 
     res.render('main', {_title: 'DDODGE.GG', _time: Date(), _body: body, _tiers: tiers});
 });
+//#endregion
 
 async function ReplaceSummoners(fullTier){
     let words = fullTier.split(' ');
@@ -145,7 +160,7 @@ async function ReplaceSummoners(fullTier){
     let division = words[1];
     let currentUserCount = 205;
     let page = 1;
-    while(currentUserCount == 205 && page <= 1000){
+    while(currentUserCount == 205 && page < 1001){
         try{
             let summoners = await api.GetLeagueUsers(tier, division, page);
             currentUserCount = summoners.length;
@@ -153,8 +168,8 @@ async function ReplaceSummoners(fullTier){
             for(let i = 0; i < summoners.length;){
                 try{
                     let summoner = await api.Summoner(summoners[i].summonerName);
-                    let success = await sql.InsertSummoner(summoner, summoners[i].tier + ' ' + summoners[i].rank);
-                    console.log(summoner.name, '유저의 DB 입력은', success, '하였습니다.', i + 1, '/', summoners.length);
+                    let result = await sql.InsertSummoner(summoner, summoners[i].tier + ' ' + summoners[i].rank);
+                    console.log(summoner.name, '유저의 DB 입력은', result, '하였습니다.', i + 1, '/', summoners.length);
 
                     ++i;
                 }
@@ -179,7 +194,65 @@ async function ReplaceSummoners(fullTier){
     return '모든' + fullTier + '티어의 유저는 DB에 입력되었습니다.';
 }
 
-async function RemoveSummoners(fullTier){
+async function AutoReplaceSummoners(fullTier){
+    let dbSummoners = await sql.GetSummonerNames();
+    let summonerNames = [];
+    for(const key in Object.keys(dbSummoners)){
+        summonerNames.push(dbSummoners[key].name);
+    }
+    console.log(summonerNames);
+
+    let startindex = tiers.indexOf(fullTier);
+    for(let j = startindex; j >= 0; --j){
+        let words = tiers[j].split(' ');
+        let tier = words[0];
+        let division = words[1];
+        let currentUserCount = 205;
+        let page = 1;
+        while(currentUserCount == 205 && page <= 100000){
+            try{
+                let summoners = await api.GetLeagueUsers(tier, division, page);
+                currentUserCount = summoners.length;
+                
+                for(let i = 0; i < summoners.length;){
+                    try{
+                        let tempIndex = summonerNames.indexOf(summoners[i].summonerName);
+                        if(tempIndex == -1){
+                            let summoner = await api.Summoner(summoners[i].summonerName);
+                            let result = await sql.InsertSummoner(summoner, summoners[i].tier + ' ' + summoners[i].rank);
+                            console.log(tier, division, '--', summoner.name, '유저의 DB 입력은', result, '하였습니다.', i + 1, '/', summoners.length);
+    
+                            ++i;
+                        }
+                        else{
+                            console.log(tier, division, '---', summoners[i].summonerName, '유저는 이미 DB에 있습니다.(', tempIndex, ')', i + 1, '/', summoners.length);
+                            ++i;
+                        }
+                    }
+                    catch(err){
+                        if(errorcodes.indexOf(err) == -1){
+                            console.log(summoners[i].summonerName, '소환사의 정보 받아오기를 실패하였습니다. 다음 소환사로 넘어갑니다.\n', err);
+                            ++i;
+                        }
+                    }
+                }
+
+                ++page;
+            }
+            catch(err){
+                if(errorcodes.indexOf(err) == -1){
+                    console.log(tier, division, page, '에서 유저 리스트 받아오기를 실패하엿습니다. 다음 리스트로 넘어갑니다.\n', err);
+                    ++page;
+                }
+            }
+        }
+    }
+
+    return '모든' + fullTier + '티어의 유저는 DB에 입력되었습니다.';
+}
+
+async function RemoveSummonersWithTier(fullTier){
+    // try...catch ??
     let result = await sql.RemoveSummonersWithTier(fullTier);
 
     return true;
@@ -194,29 +267,34 @@ async function RemoveALLSummoners(){
 async function ReplaceMatches(prevDate, nextDate){
     console.log('시작날짜:', new Date(Number(prevDate)).toLocaleString(), '--- 종료날짜:', new Date(Number(nextDate)).toLocaleString());
 
-    
     let tableName = 'match' + prevDate + '_' + nextDate;
-    let dbmatches = await sql.GetMatchIds(tableName);
+    let sqlMatches = await sql.GetMatchIds(tableName);
+    let dbMatches = [];
+    for(const key in sqlMatches){
+        dbMatches.push(Number(sqlMatches[key].gameId));
+    }
+
     try{
-        let tempTable = sql.CreateMatchesTable(tableName);
+        let tempTable = await sql.CreateMatchesTable(tableName);
     }
     catch(err){
         console.log(tableName, '테이블 생성에 실패하였습니다.\n', err);
     }
 
-    let result = await sql.GetSummoners();
-    console.log(result.length, '명의 매치분석을 시작합니다.');
+    let summoners = await sql.GetSummoners();
+    console.log(summoners.length, '명의 매치분석을 시작합니다.');
 
-    for(let i = 0; i < result.length;){
+    for(let i = 0; i < summoners.length;){
         let currentMatches = [];
         try{
-            console.log(result[i].name, '소환사의 전적기록 검사를 시작합니다.', i + 1, '/', result.length);
-            let matches = await api.GetMatchList(result[i].accountId, prevDate, nextDate);
-            console.log(result[i].name, '소환사의 전적기록 개수는', matches.matches.length, '개입니다.');
+            console.log(summoners[i].name, '소환사의 전적기록 검사를 시작합니다.', i + 1, '/', summoners.length);
+            let matches = await api.GetMatchList(summoners[i].accountId, prevDate, nextDate);
+            console.log(summoners[i].name, '소환사의 전적기록 개수는', matches.matches.length, '개입니다.');
 
             for(let j = 0; j < matches.matches.length;){
                 try{
-                    if(currentMatches.indexOf(matches.matches[j].gameId) != -1 || dbmatches.indexOf(matches.matches[j].gameId) == -1){
+                    console.log(currentMatches.indexOf(matches.matches[j].gameId) != -1, '/', dbMatches.indexOf(matches.matches[j].gameId));
+                    if(currentMatches.indexOf(matches.matches[j].gameId) != -1 || dbMatches.indexOf(matches.matches[j].gameId) != -1){
                         console.log(matches.matches[j].gameId, '는 이미 검사한 매치입니다.');
                     }
                     else{
@@ -225,14 +303,14 @@ async function ReplaceMatches(prevDate, nextDate){
                         let match = await api.GetMatch(matches.matches[j].gameId);
                         let result = await sql.InsertMatch(match, tableName);
                         
-                        console.log(matches.matches[j].gameId, '매치의 검사를 완료하였습니다.');
+                        console.log(matches.matches[j].gameId, '매치의 검사를 완료하였습니다.', match);
                     }
 
                     ++j;
                 }
                 catch(err){
                     if(errorcodes.indexOf(err) == -1){
-                        console.log(result[i].name, result[i].accountId, '소환사의', matches.matches[j].gameId, '의 검사에 실패하였습니다. 다음 매치로 넘어갑니다\n', err);
+                        console.log(summoners[i].name, '소환사의', matches.matches[j].gameId, '의 검사에 실패하였습니다. 다음 매치로 넘어갑니다\n', err);
                         ++j;
                     }
                 }
@@ -242,18 +320,21 @@ async function ReplaceMatches(prevDate, nextDate){
         }
         catch(err){
             if(errorcodes.indexOf(err) == -1){
-                console.log(result[i].name, result[i].accountId, '소환사의 전적기록 불러오기에 실패하였습니다. 다음 소환사로 넘어갑니다.\n', err);
+                console.log(summoners[i].name, summoners[i].accountId, '소환사의 전적기록 불러오기에 실패하였습니다. 다음 소환사로 넘어갑니다.\n', err);
                 ++i;
             }
         }
     }
+
+    console.log(currentMatches);
 
     return true;
 }
 
 async function Test(prevDate, nextDate){
     console.log('검색한 일자에 대한 매치 분석을 시작합니다.');
-    let sqlMatches = await sql.GetMatches('match' + prevDate + '_' + nextDate);
+    let tableName = 'match' + prevDate + '_' + nextDate
+    let sqlMatches = await sql.GetMatches(tableName);
     console.log(sqlMatches.length, '개의 매치가 검색되었습니다.');
     let matches = helper.MakeMatch(sqlMatches);
 
@@ -415,7 +496,29 @@ async function Test(prevDate, nextDate){
         playerWinSheet[excel.GetSheetColumnWord(column) + row] = {v: value, t: 'n'};
         exceptPickSheet[excel.GetSheetColumnWord(column) + row] = {v: value, t: 'n'};
         exceptWinSheet[excel.GetSheetColumnWord(column) + row] = {v: value, t: 'n'};
-    } 
+    }
+    async function GetMasters(players){
+        let masterSummonerNames = await sql.GetSummonerNames();
+        console.log(Object.keys(masterSummonerNames).length);
+
+        let array = [];
+        for(const player in masterSummonerNames){
+            array.push(masterSummonerNames[player].name)
+        }
+        console.log('array: ', array.length);
+    
+        let returnPlayers = {};
+        for(const key in players){
+            if(array.indexOf(key) != -1){
+                returnPlayers[key] = players[key];
+            }
+        }
+    
+        return returnPlayers;
+    }
+    console.log(Object.keys(players).length);
+    players = await GetMasters(players)
+    console.log(Object.keys(players).length);
     let currentColumn2 = 5;
     let playercount = 5;
     for(const key in players){
@@ -433,7 +536,7 @@ async function Test(prevDate, nextDate){
         exceptWinSheet[excel.GetSheetColumnWord(currentColumn2) + 1] = {v: lol_position[i], t: 's'};
 
         for(let j = 0; j < championList.length; ++j, ++currentColumn2){
-            console.log('--- position: ', lol_position[i], 'champ: ', championList[j], '---');
+            // console.log('--- position: ', lol_position[i], 'champ: ', championList[j], '---');
             InsertCell(2, currentColumn2, championList[j].id);
 
             let playerCount = 0;
@@ -502,71 +605,8 @@ async function Test(prevDate, nextDate){
         exceptWinSheet['!ref'] = 'A1:' + excel.GetSheetColumnWord(culumn) + row;
     }
     SetSheetRange(playercount, currentColumn2);
-    excel.Save(xlsx, 'Result.xlsx');
+    excel.Save(xlsx, distPath + tableName + '.xlsx');
     //#endregion
 
     return true;
 }
-
-// async function Test2(prevDate, nextDate){
-//     console.log('----- Load Matches -----');
-//     let sqlMatches = await sql.GetMatches('match' + prevDate + '_' + nextDate);
-//     console.log('match Count: ' + sqlMatches.length);
-//     let matches = helper.MakeMatch(sqlMatches);
-
-//     let temp = excel.Load('test.xlsx');
-//     let sheet = excel.GetSheet(temp, 'Sheet1');
-
-//     let row = 1;
-//     function InsertCell(tempsheet, row, column, value, type = 'n'){
-//         tempsheet[excel.GetSheetColumnWord(column) + row] = {v: value, t: type};
-//     }
-//     matches.forEach(element => {
-//         let column = 0;
-//         console.log(element['gameId']);
-//         InsertCell(sheet, row, column, element['gameId']);
-//         element.bans.forEach(ban => {
-//             ++column
-//             InsertCell(sheet, row, column, ban);
-//         });
-//         element.winTeam.forEach(winPlayer => {
-//             ++column;
-//             if(winPlayer == undefined){
-//                 InsertCell(sheet, row, column, 'NONE', 's');    
-//                 ++column;
-//                 InsertCell(sheet, row, column, 0);
-//             }
-//             else{
-//                 InsertCell(sheet, row, column, winPlayer['name'], 's');
-//                 ++column;
-//                 InsertCell(sheet, row, column, winPlayer['championId']);
-//             }
-//         });
-//         element.lossTeam.forEach(lossPlayer => {
-//             ++column;
-//             if(lossPlayer == undefined){
-//                 InsertCell(sheet, row, column, 'NONE', 's');    
-//                 ++column;
-//                 InsertCell(sheet, row, column, 0);
-//             }
-//             else{
-//                 InsertCell(sheet, row, column, lossPlayer['name'], 's');
-//                 ++column;
-//                 InsertCell(sheet, row, column, lossPlayer['championId']);
-//             }
-//         });
-
-//         ++row;
-//     });
-
-//     let saveColumn = 31;
-    
-//     function SetSheetRange(row, culumn){
-//         sheet['!ref'] = 'A1:' + excel.GetSheetColumnWord(culumn) + row;
-//         sheet['!ref'] = 'A1:' + excel.GetSheetColumnWord(culumn) + row;
-//         sheet['!ref'] = 'A1:' + excel.GetSheetColumnWord(culumn) + row;
-//         sheet['!ref'] = 'A1:' + excel.GetSheetColumnWord(culumn) + row;
-//     }
-//     SetSheetRange(matches.length, saveColumn);
-//     excel.Save(temp, 'Test2.xlsx');
-// }
